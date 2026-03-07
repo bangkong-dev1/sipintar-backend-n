@@ -24,7 +24,7 @@ func main() {
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://postgres:postgres@localhost:5432/multitenant?sslmode=disable"
+		dsn = "postgres://root:Tasikmalaya123..@localhost/centralpaud?sslmode=disable"
 		logger.Warn("DATABASE_URL not set, using default", zap.String("dsn", dsn))
 	}
 
@@ -39,19 +39,15 @@ func main() {
 		logger.Fatal("Failed to run migrations", zap.Error(err))
 	}
 
-	tenantRepo := repository.NewTenantRepository(db.DB)
-	tenantUsecase := usecases.NewTenantUsecase(db.DB, tenantRepo, logger)
-	tenantHandler := http.NewTenantHandler(tenantUsecase, logger)
+	tenantRepo := repository.NewPaudRepository(db.DB)
+	tenantUsecase := usecases.NewPaudUseCase(db.DB, tenantRepo, logger)
+	tenantHandler := http.NewPaudHandler(tenantUsecase, logger)
 
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
 	routes.SetupTenantRoutes(r, tenantHandler)
-
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
 
 	port := os.Getenv("PORT")
 	if port == "" {

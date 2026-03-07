@@ -6,10 +6,11 @@ import (
 	"github.com/google/uuid"
 )
 
-type Tenant struct {
+type Paud struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
 	Subdomain string    `json:"subdomain"`
+	Logo      string    `json:"logo,omitempty"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
