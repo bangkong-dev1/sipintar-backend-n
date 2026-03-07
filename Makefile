@@ -7,6 +7,9 @@ rerun:
 	pkill -f "go run cmd/app/main.go" || true
 	go run cmd/app/main.go
 
+build:
+	go build -o app cmd/app/main.go
+
 
 
 .DEFAULT_GOAL := help
