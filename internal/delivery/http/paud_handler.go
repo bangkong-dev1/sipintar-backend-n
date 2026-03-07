@@ -122,7 +122,7 @@ func (h *PaudHandler) ResolvePaud() gin.HandlerFunc {
 			zap.String("path", c.Request.URL.Path),
 		)
 
-		paud, err := h.usecase.ResolveFromHost(c.Request.Context(), host)
+		paud, err := h.usecase.ResolveFromHeader(c.Request.Context(), c)
 		if err != nil {
 			h.logger.Warn("Paud tidak ditemukan",
 				zap.String("host", host),
@@ -152,7 +152,6 @@ func (h *PaudHandler) ResolvePaud() gin.HandlerFunc {
 			zap.String("subdomain", paud.Subdomain),
 		)
 
-		c.Next()
 	}
 }
 

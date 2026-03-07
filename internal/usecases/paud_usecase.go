@@ -132,12 +132,24 @@ func (u *PaudUseCase) ResolveFromHost(ctx context.Context, host string) (*entiti
 }
 
 // Todo ResolveFromHeader = extract tenant dari header khusus, misal X-Tenant-ID
-func (u *PaudUseCase) ExtractFromHeader(c *gin.Context) (string, error) {
-	headerName := c.GetHeader("X-Tenant-id")
+func (u *PaudUseCase) ResolveFromHeader(ctx context.Context, c *gin.Context) (*entities.Paud, error) {
+	subdomain, err := u.ExtractFromHeader(c)
+	if err != nil {
+		return nil, err
+	}
 
-	subdomain := c.Request.Header.Get(headerName)
+	tenant, err := u.repo.GetBySubdomain(ctx, subdomain)
+	if err != nil {
+		return nil, fmt.Errorf("tenant tidak ditemukan untuk subdomain: %s", subdomain)
+	}
+
+	return tenant, nil
+}
+
+func (u *PaudUseCase) ExtractFromHeader(c *gin.Context) (string, error) {
+	subdomain := c.GetHeader("X-Paud-subdomain")
 	if subdomain == "" {
-		return "", fmt.Errorf("no tenant header found: %s", headerName)
+		return "", fmt.Errorf("no tenant header found: %s", subdomain)
 	}
 
 	if err := u.ValidateSubdomain(subdomain); err != nil {
