@@ -3,25 +3,25 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
 type DB struct {
-	*sql.DB
+	*sqlx.DB
 	logger *zap.Logger
 }
 
 // NewDB creates a new database connection
 func NewDB(dsn string, logger *zap.Logger) (*DB, error) {
-	db, err := sql.Open("postgres", dsn)
+	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

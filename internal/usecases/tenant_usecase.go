@@ -11,16 +11,17 @@ import (
 	"github.com/azril773/go-backend/internal/entities"
 	"github.com/azril773/go-backend/internal/repository"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 type TenantUsecase struct {
-	db     *sql.DB
+	db     *sqlx.DB
 	repo   *repository.TenantRepository
 	logger *zap.Logger
 }
 
-func NewTenantUsecase(db *sql.DB, repo *repository.TenantRepository, logger *zap.Logger) *TenantUsecase {
+func NewTenantUsecase(db *sqlx.DB, repo *repository.TenantRepository, logger *zap.Logger) *TenantUsecase {
 	return &TenantUsecase{
 		db:     db,
 		repo:   repo,

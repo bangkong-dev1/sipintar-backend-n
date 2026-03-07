@@ -9,14 +9,15 @@ import (
 
 	"github.com/azril773/go-backend/internal/entities"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 )
 
 // TenantRepository = struct untuk akses database tenant
 type TenantRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewTenantRepository(db *sql.DB) *TenantRepository {
+func NewTenantRepository(db *sqlx.DB) *TenantRepository {
 	return &TenantRepository{db: db}
 }
 
