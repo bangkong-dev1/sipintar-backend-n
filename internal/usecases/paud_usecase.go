@@ -30,34 +30,36 @@ func NewPaudUseCase(db *sqlx.DB, repo *repository.PaudRepository, logger *zap.Lo
 	}
 }
 
-func (u *PaudUseCase) CreatePaud(ctx context.Context, name, subdomain string) (*entities.Paud, error) {
+func (u *PaudUseCase) CreatePaud(ctx context.Context, name, subdomain, logo string) (*entities.Paud, error) {
 	if err := u.ValidateSubdomain(subdomain); err != nil {
 		return nil, err
 	}
+	//  handle logo upload
 
-	tenant := &entities.Paud{
+	paud := &entities.Paud{
 		ID:        uuid.New(),
 		Name:      name,
 		Subdomain: subdomain,
+		Logo:      &logo,
 		Status:    entities.StatusPending,
 	}
 
-	if err := u.repo.Create(ctx, tenant); err != nil {
+	if err := u.repo.Create(ctx, paud); err != nil {
 		return nil, err
 	}
 
-	tenant.Status = entities.StatusActive
-	if err := u.repo.Update(ctx, tenant); err != nil {
+	paud.Status = entities.StatusActive
+	if err := u.repo.Update(ctx, paud); err != nil {
 		return nil, err
 	}
 
-	u.logger.Info("Tenant created",
-		zap.String("tenant_id", tenant.ID.String()),
+	u.logger.Info("paud created",
+		zap.String("paud_id", paud.ID.String()),
 		zap.String("name", name),
 		zap.String("subdomain", subdomain),
 	)
 
-	return tenant, nil
+	return paud, nil
 }
 
 func (u *PaudUseCase) GetPaud(ctx context.Context, id uuid.UUID) (*entities.Paud, error) {
@@ -72,7 +74,7 @@ func (u *PaudUseCase) UpdatePaud(ctx context.Context, paud *entities.Paud) error
 	if err := u.repo.Update(ctx, paud); err != nil {
 		return err
 	}
-	u.logger.Info("Tenant updated", zap.String("tenant_id", paud.ID.String()))
+	u.logger.Info("paud updated", zap.String("paud_id", paud.ID.String()))
 	return nil
 }
 
@@ -81,7 +83,7 @@ func (u *PaudUseCase) DeletePaud(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	u.logger.Info("Tenant deleted", zap.String("tenant_id", id.String()))
+	u.logger.Info("paud deleted", zap.String("paud_id", id.String()))
 	return nil
 }
 
@@ -90,21 +92,21 @@ func (u *PaudUseCase) ListPaud(ctx context.Context, page, perPage int) ([]*entit
 }
 
 func (u *PaudUseCase) SuspendPaud(ctx context.Context, id uuid.UUID) error {
-	tenant, err := u.repo.GetByID(ctx, id)
+	paud, err := u.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
-	tenant.Status = entities.StatusSuspended
-	return u.repo.Update(ctx, tenant)
+	paud.Status = entities.StatusSuspended
+	return u.repo.Update(ctx, paud)
 }
 
 func (u *PaudUseCase) ActivatePaud(ctx context.Context, id uuid.UUID) error {
-	tenant, err := u.repo.GetByID(ctx, id)
+	paud, err := u.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
-	tenant.Status = entities.StatusActive
-	return u.repo.Update(ctx, tenant)
+	paud.Status = entities.StatusActive
+	return u.repo.Update(ctx, paud)
 }
 
 func (u *PaudUseCase) GetPaudConn(ctx context.Context, paudID uuid.UUID) (*sql.Conn, error) {
@@ -116,40 +118,40 @@ func (u *PaudUseCase) GetPaudConn(ctx context.Context, paudID uuid.UUID) (*sql.C
 	return conn, nil
 }
 
-// ResolveFromHost = extract tenant dari host header
+// ResolveFromHost = extract paud dari host header
 func (u *PaudUseCase) ResolveFromHost(ctx context.Context, host string) (*entities.Paud, error) {
 	subdomain, err := u.ExtractSubdomain(host)
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, err := u.repo.GetBySubdomain(ctx, subdomain)
+	paud, err := u.repo.GetBySubdomain(ctx, subdomain)
 	if err != nil {
-		return nil, fmt.Errorf("tenant tidak ditemukan untuk subdomain: %s", subdomain)
+		return nil, fmt.Errorf("paud tidak ditemukan untuk subdomain: %s", subdomain)
 	}
 
-	return tenant, nil
+	return paud, nil
 }
 
-// Todo ResolveFromHeader = extract tenant dari header khusus, misal X-Tenant-ID
+// Todo ResolveFromHeader = extract paud dari header khusus, misal X-paud-ID
 func (u *PaudUseCase) ResolveFromHeader(ctx context.Context, c *gin.Context) (*entities.Paud, error) {
 	subdomain, err := u.ExtractFromHeader(c)
 	if err != nil {
 		return nil, err
 	}
 
-	tenant, err := u.repo.GetBySubdomain(ctx, subdomain)
+	paud, err := u.repo.GetBySubdomain(ctx, subdomain)
 	if err != nil {
-		return nil, fmt.Errorf("tenant tidak ditemukan untuk subdomain: %s", subdomain)
+		return nil, fmt.Errorf("%s", err.Error())
 	}
 
-	return tenant, nil
+	return paud, nil
 }
 
 func (u *PaudUseCase) ExtractFromHeader(c *gin.Context) (string, error) {
-	subdomain := c.GetHeader("X-Paud-subdomain")
+	subdomain := c.GetHeader("X-subdomain")
 	if subdomain == "" {
-		return "", fmt.Errorf("no tenant header found: %s", subdomain)
+		return "", fmt.Errorf("no paud header found: %s", subdomain)
 	}
 
 	if err := u.ValidateSubdomain(subdomain); err != nil {

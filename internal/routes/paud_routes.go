@@ -5,10 +5,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupTenantRoutes(r *gin.Engine, handler *http.PaudHandler) {
+func PaudRoute(r *gin.Engine, handler *http.PaudHandler) {
 	admin := r.Group("/admin")
 	{
-		pauds := admin.Group("/tenants")
+		pauds := admin.Group("/pauds")
 		{
 			pauds.POST("", handler.Create)
 			pauds.GET("", handler.List)
@@ -18,7 +18,7 @@ func SetupTenantRoutes(r *gin.Engine, handler *http.PaudHandler) {
 			pauds.POST("/:id/activate", handler.Activate)
 		}
 	}
-	// ni buat example by domain coi seemlike tenant1.localhost:8080/api/ingfo
+	// ni buat example by domain coi seemlike paud1.localhost:8080/api/ingfo
 	api := r.Group("/api")
 	api.Use(handler.ResolvePaud())
 	{
@@ -26,9 +26,10 @@ func SetupTenantRoutes(r *gin.Engine, handler *http.PaudHandler) {
 			paud := http.GetPaudFromGin(c)
 			c.JSON(200, gin.H{
 				"status": "ok",
-				"tenant": gin.H{
+				"paud": gin.H{
 					"id":        paud.ID,
 					"name":      paud.Name,
+					"logo":      paud.Logo,
 					"subdomain": paud.Subdomain,
 				},
 			})

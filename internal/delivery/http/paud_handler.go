@@ -1,6 +1,11 @@
 package http
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/azril773/go-backend/internal/entities"
 	"github.com/azril773/go-backend/internal/usecases"
 	"github.com/gin-gonic/gin"
@@ -27,12 +32,31 @@ func (h *PaudHandler) Create(c *gin.Context) {
 		Subdomain string `json:"subdomain" binding:"required"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	paud, err := h.usecase.CreatePaud(c.Request.Context(), req.Name, req.Subdomain)
+	c.Request.ParseMultipartForm(10 << 20)
+	file, handler, err := c.Request.FormFile("Logo")
+	if err != nil {
+		h.logger.Warn("Logo tidak diupload", zap.Error(err))
+		c.JSON(400, gin.H{"error": "Logo tidak diupload"})
+		return
+	}
+	defer file.Close()
+	ext := filepath.Ext(handler.Filename)
+	subdomain := strings.ToLower(strings.ReplaceAll(req.Subdomain, " ", "-"))
+	handler.Filename = fmt.Sprintf("%s%s", subdomain, ext)
+	dst, err := os.Create(fmt.Sprintf("public/image/logo/%s", handler.Filename))
+	if err != nil {
+		h.logger.Warn("Gagal simpan logo", zap.Error(err))
+		c.JSON(500, gin.H{"error": err.Error(), "filename": handler.Filename})
+		return
+	}
+	defer dst.Close()
+
+	paud, err := h.usecase.CreatePaud(c.Request.Context(), req.Name, req.Subdomain, fmt.Sprintf("/public/image/logo/%s", handler.Filename))
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -64,7 +88,7 @@ func (h *PaudHandler) List(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"tenants": pauds, "total": total})
+	c.JSON(200, gin.H{"pauds": pauds, "total": total})
 }
 
 func (h *PaudHandler) Delete(c *gin.Context) {
@@ -111,12 +135,15 @@ func (h *PaudHandler) Activate(c *gin.Context) {
 
 	c.JSON(200, gin.H{"message": "Paud berhasil diaktifkan"})
 }
+func (h *PaudHandler) Test() string {
+	return "test"
+}
 
 // ResolvePaud = middleware untuk resolve paud dari subdomain
 func (h *PaudHandler) ResolvePaud() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		host := c.Request.Host
-
+		h.Test()
 		h.logger.Debug("Resolving paud from host",
 			zap.String("host", host),
 			zap.String("path", c.Request.URL.Path),
@@ -139,10 +166,10 @@ func (h *PaudHandler) ResolvePaud() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("tenant", paud)
-		c.Set("tenant_id", paud.ID.String())
-		c.Set("tenant_context", &entities.Context{
-			TenantID:  paud.ID,
+		c.Set("paud", paud)
+		c.Set("paud_id", paud.ID.String())
+		c.Set("paud_context", &entities.Context{
+			PaudID:    paud.ID,
 			Subdomain: paud.Subdomain,
 			Status:    paud.Status,
 		})
@@ -157,7 +184,7 @@ func (h *PaudHandler) ResolvePaud() gin.HandlerFunc {
 
 // GetPaudFromGin = helper buat  ambil Paud dari gin context
 func GetPaudFromGin(c *gin.Context) *entities.Paud {
-	p, exists := c.Get("tenant")
+	p, exists := c.Get("paud")
 	if !exists {
 		return nil
 	}
@@ -166,7 +193,7 @@ func GetPaudFromGin(c *gin.Context) *entities.Paud {
 
 // GetPaudContextFromGin = helper buat  ambil Context dari gin context
 func GetPaudContextFromGin(c *gin.Context) *entities.Context {
-	ctx, exists := c.Get("tenant_context")
+	ctx, exists := c.Get("paud_context")
 	if !exists {
 		return nil
 	}

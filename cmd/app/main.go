@@ -39,15 +39,15 @@ func main() {
 		logger.Fatal("Failed to run migrations", zap.Error(err))
 	}
 
-	tenantRepo := repository.NewPaudRepository(db.DB)
-	tenantUsecase := usecases.NewPaudUseCase(db.DB, tenantRepo, logger)
-	tenantHandler := http.NewPaudHandler(tenantUsecase, logger)
+	paudRepo := repository.NewPaudRepository(db.DB)
+	paudUsecase := usecases.NewPaudUseCase(db.DB, paudRepo, logger)
+	paudHandler := http.NewPaudHandler(paudUsecase, logger)
 
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
-	routes.SetupTenantRoutes(r, tenantHandler)
+	routes.PaudRoute(r, paudHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

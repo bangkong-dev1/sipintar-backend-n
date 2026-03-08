@@ -7,18 +7,18 @@ import (
 )
 
 type Paud struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Subdomain string    `json:"subdomain"`
-	Logo      string    `json:"logo,omitempty"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uuid.UUID `db:"id" json:"id"`
+	Name      string    `db:"name" json:"name"`
+	Subdomain string    `db:"subdomain" json:"subdomain"`
+	Logo      *string   `db:"logo" json:"logo,omitempty"`
+	Status    string    `db:"status" json:"status"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
-// Context is adalah awokwok informasi tenant untuk request
+// Context is adalah awokwok informasi paud untuk request
 type Context struct {
-	TenantID  uuid.UUID `json:"tenant_id"`
+	PaudID    uuid.UUID `json:"paud_id"`
 	Subdomain string    `json:"subdomain"`
 	Status    string    `json:"status"`
 }
@@ -53,12 +53,12 @@ func (e ValidationError) Error() string {
 	return e.Message
 }
 
-type TenantError struct {
-	TenantID uuid.UUID `json:"tenant_id"`
-	Code     string    `json:"code"`
-	Message  string    `json:"message"`
+type paudError struct {
+	PaudID  uuid.UUID `json:"paud_id"`
+	Code    string    `json:"code"`
+	Message string    `json:"message"`
 }
 
-func (e TenantError) Error() string {
+func (e paudError) Error() string {
 	return e.Message
 }

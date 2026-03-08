@@ -12,7 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// PaudRepository = struct untuk akses database tenant
+// PaudRepository = struct untuk akses database paud
 type PaudRepository struct {
 	db *sqlx.DB
 }
@@ -32,63 +32,63 @@ func (r *PaudRepository) Create(ctx context.Context, t *entities.Paud) error {
 		t.Status = entities.StatusPending
 	}
 
-	query := `INSERT INTO tenants (id, name, subdomain, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`
-	_, err := r.db.ExecContext(ctx, query, t.ID, t.Name, t.Subdomain, t.Status, t.CreatedAt, t.UpdatedAt)
+	query := `INSERT INTO pauds (id, name, subdomain, logo, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	_, err := r.db.ExecContext(ctx, query, t.ID, t.Name, t.Subdomain, t.Logo, t.Status, t.CreatedAt, t.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("gagal create tenant: %w", err)
+		return fmt.Errorf("gagal create paud: %w", err)
 	}
 	return nil
 }
 
 func (r *PaudRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Paud, error) {
-	query := `SELECT id, name, subdomain, status, created_at, updated_at FROM tenants WHERE id = $1`
+	query := `SELECT id, name, subdomain, logo, status, created_at, updated_at FROM pauds WHERE id = $1`
 	t := &entities.Paud{}
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&t.ID, &t.Name, &t.Subdomain, &t.Status, &t.CreatedAt, &t.UpdatedAt)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&t.ID, &t.Name, &t.Subdomain, &t.Logo, &t.Status, &t.CreatedAt, &t.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("tenant tidak ditemukan: %s", id)
+			return nil, fmt.Errorf("paud tidak ditemukan: %s", id)
 		}
-		return nil, fmt.Errorf("gagal get tenant: %w", err)
+		return nil, fmt.Errorf("gagal get paud: %w", err)
 	}
 	return t, nil
 }
 
 func (r *PaudRepository) GetBySubdomain(ctx context.Context, subdomain string) (*entities.Paud, error) {
-	query := `SELECT id, name, subdomain, status, created_at, updated_at FROM tenants WHERE subdomain = $1`
+	query := `SELECT id, name, subdomain, logo, status, created_at, updated_at 
+	          FROM pauds WHERE subdomain = $1`
+
 	t := &entities.Paud{}
-	err := r.db.QueryRowContext(ctx, query, subdomain).Scan(&t.ID, &t.Name, &t.Subdomain, &t.Status, &t.CreatedAt, &t.UpdatedAt)
+	err := r.db.GetContext(ctx, t, query, subdomain)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("tenant tidak ditemukan untuk subdomain: %s", subdomain)
-		}
-		return nil, fmt.Errorf("gagal get tenant by subdomain: %w", err)
+		return nil, fmt.Errorf("gagal get paud by subdomain: %w", err)
 	}
+
 	return t, nil
 }
 
 func (r *PaudRepository) Update(ctx context.Context, t *entities.Paud) error {
 	t.UpdatedAt = time.Now()
-	query := `UPDATE tenants SET name = $1, subdomain = $2, status = $3, updated_at = $4 WHERE id = $5`
-	result, err := r.db.ExecContext(ctx, query, t.Name, t.Subdomain, t.Status, t.UpdatedAt, t.ID)
+	query := `UPDATE pauds SET name = $1, subdomain = $2, logo = $3, status = $4, updated_at = $5 WHERE id = $6`
+	result, err := r.db.ExecContext(ctx, query, t.Name, t.Subdomain, t.Logo, t.Status, t.UpdatedAt, t.ID)
 	if err != nil {
-		return fmt.Errorf("gagal update tenant: %w", err)
+		return fmt.Errorf("gagal update paud: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("tenant tidak ditemukan: %s", t.ID)
+		return fmt.Errorf("paud tidak ditemukan: %s", t.ID)
 	}
 	return nil
 }
 
 func (r *PaudRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM tenants WHERE id = $1`
+	query := `DELETE FROM pauds WHERE id = $1`
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("gagal delete tenant: %w", err)
+		return fmt.Errorf("gagal delete paud: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("tenant tidak ditemukan: %s", id)
+		return fmt.Errorf("paud tidak ditemukan: %s", id)
 	}
 	return nil
 }
@@ -102,27 +102,27 @@ func (r *PaudRepository) List(ctx context.Context, page, perPage int) ([]*entiti
 	}
 
 	var total int
-	countQuery := `SELECT COUNT(*) FROM tenants`
+	countQuery := `SELECT COUNT(*) FROM pauds`
 	if err := r.db.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("gagal count tenants: %w", err)
+		return nil, 0, fmt.Errorf("gagal count pauds: %w", err)
 	}
 
 	offset := (page - 1) * perPage
-	query := `SELECT id, name, subdomain, status, created_at, updated_at FROM tenants ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	query := `SELECT id, name, subdomain, logo, status, created_at, updated_at FROM pauds ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 	rows, err := r.db.QueryContext(ctx, query, perPage, offset)
 	if err != nil {
-		return nil, 0, fmt.Errorf("gagal list tenants: %w", err)
+		return nil, 0, fmt.Errorf("gagal list pauds: %w", err)
 	}
 	defer rows.Close()
 
-	var tenants []*entities.Paud
+	var pauds []*entities.Paud
 	for rows.Next() {
 		t := &entities.Paud{}
-		if err := rows.Scan(&t.ID, &t.Name, &t.Subdomain, &t.Status, &t.CreatedAt, &t.UpdatedAt); err != nil {
-			return nil, 0, fmt.Errorf("gagal scan tenant: %w", err)
+		if err := rows.Scan(&t.ID, &t.Name, &t.Subdomain, &t.Logo, &t.Status, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan paud: %w", err)
 		}
-		tenants = append(tenants, t)
+		pauds = append(pauds, t)
 	}
 
-	return tenants, total, nil
+	return pauds, total, nil
 }
