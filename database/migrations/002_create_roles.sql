@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS roles (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+);

@@ -1,0 +1,737 @@
+basePath: /
+definitions:
+  entities.Paud:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      logo:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      subdomain:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entities.Role:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entities.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      paud_id:
+        type: string
+      role_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  http.CreateRoleInput:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  http.CreateUserForPaudInput:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role_id:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  http.CreateUserInput:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      paud_id:
+        type: string
+      role_id:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  http.UpdateRoleInput:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  http.UpdateUserInput:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      paud_id:
+        type: string
+      role_id:
+        type: string
+    required:
+    - email
+    - name
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@paud.com
+    name: API Support
+  description: API untuk manajemen PAUD Multi-Tenant
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: PAUD Central API
+  version: "1.0"
+paths:
+  /admin/api/users:
+    post:
+      consumes:
+      - application/json
+      description: Membuat user baru
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreateUserInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create user baru
+      tags:
+      - Admin - User Management
+  /admin/pauds:
+    get:
+      consumes:
+      - application/json
+      description: Mendapatkan daftar semua PAUD dengan pagination
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List semua PAUD
+      tags:
+      - Admin - PAUD Management
+    post:
+      consumes:
+      - multipart/form-data
+      description: Membuat PAUD baru dengan upload logo
+      parameters:
+      - description: Nama PAUD
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Subdomain PAUD
+        in: formData
+        name: subdomain
+        required: true
+        type: string
+      - description: Logo PAUD
+        in: formData
+        name: Logo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.Paud'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create PAUD baru
+      tags:
+      - Admin - PAUD Management
+  /admin/pauds/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Menghapus PAUD berdasarkan ID
+      parameters:
+      - description: PAUD ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete PAUD
+      tags:
+      - Admin - PAUD Management
+    get:
+      consumes:
+      - application/json
+      description: Mendapatkan detail PAUD berdasarkan ID
+      parameters:
+      - description: PAUD ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Paud'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get PAUD by ID
+      tags:
+      - Admin - PAUD Management
+  /admin/pauds/{id}/activate:
+    post:
+      consumes:
+      - application/json
+      description: Mengaktifkan kembali PAUD yang di-suspend
+      parameters:
+      - description: PAUD ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Activate PAUD
+      tags:
+      - Admin - PAUD Management
+  /admin/pauds/{id}/suspend:
+    post:
+      consumes:
+      - application/json
+      description: Menonaktifkan PAUD sementara
+      parameters:
+      - description: PAUD ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Suspend PAUD
+      tags:
+      - Admin - PAUD Management
+  /admin/pauds/{subdomain}/users:
+    get:
+      consumes:
+      - application/json
+      description: Mendapatkan daftar user berdasarkan subdomain paud
+      parameters:
+      - description: Paud Subdomain
+        in: path
+        name: subdomain
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get users by paud subdomain
+      tags:
+      - Admin - User Management
+  /admin/roles:
+    get:
+      description: Get list of all roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.Role'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all roles
+      tags:
+      - roles
+    post:
+      consumes:
+      - application/json
+      description: Create a new role with the provided name
+      parameters:
+      - description: Role data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreateRoleInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.Role'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new role
+      tags:
+      - roles
+  /admin/roles/{id}:
+    delete:
+      description: Delete a role by its ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a role
+      tags:
+      - roles
+    get:
+      description: Get a single role by its ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Role'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get role by ID
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: Update an existing role's name
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/http.UpdateRoleInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a role
+      tags:
+      - roles
+  /admin/users:
+    get:
+      consumes:
+      - application/json
+      description: Mendapatkan daftar semua user dengan pagination
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List semua user
+      tags:
+      - Admin - User Management
+  /admin/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Menghapus user berdasarkan ID
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete user
+      tags:
+      - Admin - User Management
+    get:
+      consumes:
+      - application/json
+      description: Mendapatkan detail user berdasarkan ID
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get user by ID
+      tags:
+      - Admin - User Management
+    put:
+      consumes:
+      - application/json
+      description: Update data user
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/http.UpdateUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update user
+      tags:
+      - Admin - User Management
+  /api/users:
+    get:
+      consumes:
+      - application/json
+      description: Mendapatkan daftar user untuk paud yang sedang diakses (dari subdomain)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List users by current paud
+      tags:
+      - Tenant - User Management
+    post:
+      consumes:
+      - application/json
+      description: Membuat user baru yang otomatis terikat dengan paud yang sedang
+        diakses
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreateUserForPaudInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create user untuk current paud
+      tags:
+      - Tenant - User Management
+  /api/users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Mendapatkan detail user yang termasuk dalam paud yang sedang diakses
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get user by ID for current paud
+      tags:
+      - Tenant - User Management
+schemes:
+- http
+- https
+swagger: "2.0"

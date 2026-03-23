@@ -17,17 +17,9 @@ import (
 )
 
 type PaudUseCase struct {
-	db     *sqlx.DB
-	repo   *repository.PaudRepository
-	logger *zap.Logger
-}
-
-func NewPaudUseCase(db *sqlx.DB, repo *repository.PaudRepository, logger *zap.Logger) *PaudUseCase {
-	return &PaudUseCase{
-		db:     db,
-		repo:   repo,
-		logger: logger.Named("paud"),
-	}
+	DB     *sqlx.DB
+	Repo   *repository.PaudRepository
+	Logger *zap.Logger
 }
 
 func (u *PaudUseCase) CreatePaud(ctx context.Context, name, subdomain, logo string) (*entities.Paud, error) {
@@ -44,16 +36,16 @@ func (u *PaudUseCase) CreatePaud(ctx context.Context, name, subdomain, logo stri
 		Status:    entities.StatusPending,
 	}
 
-	if err := u.repo.Create(ctx, paud); err != nil {
+	if err := u.Repo.Create(ctx, paud); err != nil {
 		return nil, err
 	}
 
 	paud.Status = entities.StatusActive
-	if err := u.repo.Update(ctx, paud); err != nil {
+	if err := u.Repo.Update(ctx, paud); err != nil {
 		return nil, err
 	}
 
-	u.logger.Info("paud created",
+	u.Logger.Info("paud created",
 		zap.String("paud_id", paud.ID.String()),
 		zap.String("name", name),
 		zap.String("subdomain", subdomain),
@@ -63,54 +55,54 @@ func (u *PaudUseCase) CreatePaud(ctx context.Context, name, subdomain, logo stri
 }
 
 func (u *PaudUseCase) GetPaud(ctx context.Context, id uuid.UUID) (*entities.Paud, error) {
-	return u.repo.GetByID(ctx, id)
+	return u.Repo.GetByID(ctx, id)
 }
 
 func (u *PaudUseCase) GetBySubdomain(ctx context.Context, subdomain string) (*entities.Paud, error) {
-	return u.repo.GetBySubdomain(ctx, subdomain)
+	return u.Repo.GetBySubdomain(ctx, subdomain)
 }
 
 func (u *PaudUseCase) UpdatePaud(ctx context.Context, paud *entities.Paud) error {
-	if err := u.repo.Update(ctx, paud); err != nil {
+	if err := u.Repo.Update(ctx, paud); err != nil {
 		return err
 	}
-	u.logger.Info("paud updated", zap.String("paud_id", paud.ID.String()))
+	u.Logger.Info("paud updated", zap.String("paud_id", paud.ID.String()))
 	return nil
 }
 
 func (u *PaudUseCase) DeletePaud(ctx context.Context, id uuid.UUID) error {
-	if err := u.repo.Delete(ctx, id); err != nil {
+	if err := u.Repo.Delete(ctx, id); err != nil {
 		return err
 	}
 
-	u.logger.Info("paud deleted", zap.String("paud_id", id.String()))
+	u.Logger.Info("paud deleted", zap.String("paud_id", id.String()))
 	return nil
 }
 
 func (u *PaudUseCase) ListPaud(ctx context.Context, page, perPage int) ([]*entities.Paud, int, error) {
-	return u.repo.List(ctx, page, perPage)
+	return u.Repo.List(ctx, page, perPage)
 }
 
 func (u *PaudUseCase) SuspendPaud(ctx context.Context, id uuid.UUID) error {
-	paud, err := u.repo.GetByID(ctx, id)
+	paud, err := u.Repo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 	paud.Status = entities.StatusSuspended
-	return u.repo.Update(ctx, paud)
+	return u.Repo.Update(ctx, paud)
 }
 
 func (u *PaudUseCase) ActivatePaud(ctx context.Context, id uuid.UUID) error {
-	paud, err := u.repo.GetByID(ctx, id)
+	paud, err := u.Repo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 	paud.Status = entities.StatusActive
-	return u.repo.Update(ctx, paud)
+	return u.Repo.Update(ctx, paud)
 }
 
 func (u *PaudUseCase) GetPaudConn(ctx context.Context, paudID uuid.UUID) (*sql.Conn, error) {
-	conn, err := u.db.Conn(ctx)
+	conn, err := u.DB.Conn(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("gagal get connection: %w", err)
 	}
@@ -125,7 +117,7 @@ func (u *PaudUseCase) ResolveFromHost(ctx context.Context, host string) (*entiti
 		return nil, err
 	}
 
-	paud, err := u.repo.GetBySubdomain(ctx, subdomain)
+	paud, err := u.Repo.GetBySubdomain(ctx, subdomain)
 	if err != nil {
 		return nil, fmt.Errorf("paud tidak ditemukan untuk subdomain: %s", subdomain)
 	}
@@ -133,14 +125,14 @@ func (u *PaudUseCase) ResolveFromHost(ctx context.Context, host string) (*entiti
 	return paud, nil
 }
 
-// Todo ResolveFromHeader = extract paud dari header khusus, misal X-paud-ID
+// Todo ResolveFromHeader
 func (u *PaudUseCase) ResolveFromHeader(ctx context.Context, c *gin.Context) (*entities.Paud, error) {
 	subdomain, err := u.ExtractFromHeader(c)
 	if err != nil {
 		return nil, err
 	}
 
-	paud, err := u.repo.GetBySubdomain(ctx, subdomain)
+	paud, err := u.Repo.GetBySubdomain(ctx, subdomain)
 	if err != nil {
 		return nil, fmt.Errorf("%s", err.Error())
 	}
@@ -161,7 +153,6 @@ func (u *PaudUseCase) ExtractFromHeader(c *gin.Context) (string, error) {
 	return subdomain, nil
 }
 
-// ExtractSubdomain = extract subdomain dari host
 func (u *PaudUseCase) ExtractSubdomain(host string) (string, error) {
 	if host == "" {
 		return "", errors.New("host kosong")
@@ -200,5 +191,5 @@ func (u *PaudUseCase) ValidateSubdomain(subdomain string) error {
 }
 
 func (u *PaudUseCase) Close() error {
-	return u.db.Close()
+	return u.DB.Close()
 }

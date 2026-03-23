@@ -5,8 +5,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PaudRoute(r *gin.Engine, handler *http.PaudHandler) {
+func PaudRoute(r *gin.Engine, handler *http.PaudHandler, authMiddleware *http.AuthMiddleware) {
+	// Admin routes dengan middleware untuk memastikan hanya bisa diakses dari domain central
 	admin := r.Group("/admin")
+	admin.Use(
+		handler.RequireCentralDomain(),
+		authMiddleware.RequireAuth(),
+		authMiddleware.RequireCentralAccess(),
+	)
 	{
 		pauds := admin.Group("/pauds")
 		{
@@ -18,9 +24,12 @@ func PaudRoute(r *gin.Engine, handler *http.PaudHandler) {
 			pauds.POST("/:id/activate", handler.Activate)
 		}
 	}
-	// ni buat example by domain coi seemlike paud1.localhost:8080/api/ingfo
 	api := r.Group("/api")
-	api.Use(handler.ResolvePaud())
+	api.Use(
+		handler.ResolvePaud(),
+		authMiddleware.RequireAuth(),
+		authMiddleware.RequireTenantAccess(),
+	)
 	{
 		api.GET("/ingfo", func(c *gin.Context) {
 			paud := http.GetPaudFromGin(c)

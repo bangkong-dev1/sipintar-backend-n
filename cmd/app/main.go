@@ -12,8 +12,28 @@ import (
 	"github.com/azril773/go-backend/internal/routes"
 	"github.com/azril773/go-backend/internal/usecases"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
+
+	// Import docs
+	_ "github.com/azril773/go-backend/docs"
 )
+
+// @title PAUD Central API
+// @version 1.0
+// @description API untuk manajemen PAUD Multi-Tenant
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@paud.com
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8080
+// @BasePath /
+// @schemes http https
 
 func main() {
 	logger, err := zap.NewDevelopment()
@@ -39,15 +59,34 @@ func main() {
 		logger.Fatal("Failed to run migrations", zap.Error(err))
 	}
 
-	paudRepo := repository.NewPaudRepository(db.DB)
-	paudUsecase := usecases.NewPaudUseCase(db.DB, paudRepo, logger)
-	paudHandler := http.NewPaudHandler(paudUsecase, logger)
+	paudRepo := &repository.PaudRepository{DB: db.DB}
+	paudUsecase := &usecases.PaudUseCase{DB: db.DB, Repo: paudRepo, Logger: logger.Named("paud")}
+	paudHandler := &http.PaudHandler{Usecase: paudUsecase, Logger: logger.Named("handler")}
+
+	roleRepo := &repository.RoleRepository{DB: db.DB}
+	roleUsecase := &usecases.RoleUseCase{DB: db.DB, Repo: roleRepo, Logger: logger.Named("role")}
+	roleHandler := &http.RoleHandler{Usecase: roleUsecase, Logger: logger.Named("handler")}
+
+	userRepo := &repository.UserRepository{DB: db.DB}
+	userUsecase := &usecases.UserUseCase{DB: db.DB, Repo: userRepo, PaudRepo: paudRepo, Logger: logger.Named("user")}
+	userHandler := &http.UserHandler{Usecase: userUsecase, Logger: logger.Named("user_handler")}
+
+	authRepo := &repository.AuthRepository{DB: db.DB}
+	authUsecase := usecases.NewAuthUseCase(userRepo, paudRepo, authRepo, logger.Named("auth"))
+	authHandler := &http.AuthHandler{Usecase: authUsecase, Logger: logger.Named("auth_handler")}
+	authMiddleware := &http.AuthMiddleware{Usecase: authUsecase, Logger: logger.Named("auth_middleware")}
 
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
-	routes.PaudRoute(r, paudHandler)
+	// Swagger documentation route
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	routes.AuthRoute(r, authHandler)
+	routes.PaudRoute(r, paudHandler, authMiddleware)
+	routes.RoleRoute(r, roleHandler, paudHandler, authMiddleware)
+	routes.UserRoute(r, userHandler, paudHandler, authMiddleware)
 
 	port := os.Getenv("PORT")
 	if port == "" {

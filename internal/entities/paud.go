@@ -38,27 +38,3 @@ func ValidateStatus(status string) bool {
 		return false
 	}
 }
-
-// ResolverConfig = konfigurasi resolver
-type ResolverConfig struct {
-	Domain string
-}
-
-type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
-}
-
-func (e ValidationError) Error() string {
-	return e.Message
-}
-
-type paudError struct {
-	PaudID  uuid.UUID `json:"paud_id"`
-	Code    string    `json:"code"`
-	Message string    `json:"message"`
-}
-
-func (e paudError) Error() string {
-	return e.Message
-}

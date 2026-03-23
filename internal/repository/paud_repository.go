@@ -14,11 +14,7 @@ import (
 
 // PaudRepository = struct untuk akses database paud
 type PaudRepository struct {
-	db *sqlx.DB
-}
-
-func NewPaudRepository(db *sqlx.DB) *PaudRepository {
-	return &PaudRepository{db: db}
+	DB *sqlx.DB
 }
 
 func (r *PaudRepository) Create(ctx context.Context, t *entities.Paud) error {
@@ -33,7 +29,7 @@ func (r *PaudRepository) Create(ctx context.Context, t *entities.Paud) error {
 	}
 
 	query := `INSERT INTO pauds (id, name, subdomain, logo, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := r.db.ExecContext(ctx, query, t.ID, t.Name, t.Subdomain, t.Logo, t.Status, t.CreatedAt, t.UpdatedAt)
+	_, err := r.DB.ExecContext(ctx, query, t.ID, t.Name, t.Subdomain, t.Logo, t.Status, t.CreatedAt, t.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("gagal create paud: %w", err)
 	}
@@ -43,7 +39,7 @@ func (r *PaudRepository) Create(ctx context.Context, t *entities.Paud) error {
 func (r *PaudRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Paud, error) {
 	query := `SELECT id, name, subdomain, logo, status, created_at, updated_at FROM pauds WHERE id = $1`
 	t := &entities.Paud{}
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&t.ID, &t.Name, &t.Subdomain, &t.Logo, &t.Status, &t.CreatedAt, &t.UpdatedAt)
+	err := r.DB.QueryRowContext(ctx, query, id).Scan(&t.ID, &t.Name, &t.Subdomain, &t.Logo, &t.Status, &t.CreatedAt, &t.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("paud tidak ditemukan: %s", id)
@@ -58,7 +54,7 @@ func (r *PaudRepository) GetBySubdomain(ctx context.Context, subdomain string) (
 	          FROM pauds WHERE subdomain = $1`
 
 	t := &entities.Paud{}
-	err := r.db.GetContext(ctx, t, query, subdomain)
+	err := r.DB.GetContext(ctx, t, query, subdomain)
 	if err != nil {
 		return nil, fmt.Errorf("gagal get paud by subdomain: %w", err)
 	}
@@ -69,7 +65,7 @@ func (r *PaudRepository) GetBySubdomain(ctx context.Context, subdomain string) (
 func (r *PaudRepository) Update(ctx context.Context, t *entities.Paud) error {
 	t.UpdatedAt = time.Now()
 	query := `UPDATE pauds SET name = $1, subdomain = $2, logo = $3, status = $4, updated_at = $5 WHERE id = $6`
-	result, err := r.db.ExecContext(ctx, query, t.Name, t.Subdomain, t.Logo, t.Status, t.UpdatedAt, t.ID)
+	result, err := r.DB.ExecContext(ctx, query, t.Name, t.Subdomain, t.Logo, t.Status, t.UpdatedAt, t.ID)
 	if err != nil {
 		return fmt.Errorf("gagal update paud: %w", err)
 	}
@@ -82,7 +78,7 @@ func (r *PaudRepository) Update(ctx context.Context, t *entities.Paud) error {
 
 func (r *PaudRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM pauds WHERE id = $1`
-	result, err := r.db.ExecContext(ctx, query, id)
+	result, err := r.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("gagal delete paud: %w", err)
 	}
@@ -103,13 +99,13 @@ func (r *PaudRepository) List(ctx context.Context, page, perPage int) ([]*entiti
 
 	var total int
 	countQuery := `SELECT COUNT(*) FROM pauds`
-	if err := r.db.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
+	if err := r.DB.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("gagal count pauds: %w", err)
 	}
 
 	offset := (page - 1) * perPage
 	query := `SELECT id, name, subdomain, logo, status, created_at, updated_at FROM pauds ORDER BY created_at DESC LIMIT $1 OFFSET $2`
-	rows, err := r.db.QueryContext(ctx, query, perPage, offset)
+	rows, err := r.DB.QueryContext(ctx, query, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("gagal list pauds: %w", err)
 	}
