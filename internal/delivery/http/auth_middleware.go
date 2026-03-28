@@ -111,3 +111,29 @@ func GetAuthClaimsFromGin(c *gin.Context) *entities.AccessTokenClaims {
 	}
 	return claims
 }
+
+func (m *AuthMiddleware) CheckRole(roles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims := GetAuthClaimsFromGin(c)
+		if claims == nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "claim auth tidak ditemukan"})
+			c.Abort()
+			return
+		}
+
+		ok, err := m.Usecase.CheckRoleUser(c.Request.Context(), claims, roles)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			c.Abort()
+			return
+		}
+
+		if !ok {
+			c.JSON(http.StatusForbidden, gin.H{"error": "akses ditolak"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

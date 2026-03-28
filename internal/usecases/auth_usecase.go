@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +33,7 @@ type AuthUseCase struct {
 	UserRepo      *repository.UserRepository
 	PaudRepo      *repository.PaudRepository
 	AuthRepo      *repository.AuthRepository
+	RoleRepo      *repository.RoleRepository
 	Logger        *zap.Logger
 	AccessSecret  []byte
 	RefreshSecret []byte
@@ -39,7 +41,7 @@ type AuthUseCase struct {
 	RefreshTTL    time.Duration
 }
 
-func NewAuthUseCase(userRepo *repository.UserRepository, paudRepo *repository.PaudRepository, authRepo *repository.AuthRepository, logger *zap.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo *repository.UserRepository, paudRepo *repository.PaudRepository, authRepo *repository.AuthRepository, roleRepo *repository.RoleRepository, logger *zap.Logger) *AuthUseCase {
 	accessSecret := os.Getenv("JWT_ACCESS_SECRET")
 	if strings.TrimSpace(accessSecret) == "" {
 		accessSecret = "local-dev-access-secret-change-me"
@@ -57,6 +59,7 @@ func NewAuthUseCase(userRepo *repository.UserRepository, paudRepo *repository.Pa
 		UserRepo:      userRepo,
 		PaudRepo:      paudRepo,
 		AuthRepo:      authRepo,
+		RoleRepo:      roleRepo,
 		Logger:        logger,
 		AccessSecret:  []byte(accessSecret),
 		RefreshSecret: []byte(refreshSecret),
@@ -301,6 +304,39 @@ func (u *AuthUseCase) parseRefreshToken(token string) (*jwt.RegisteredClaims, er
 	}
 
 	return &claims.RegisteredClaims, nil
+}
+
+func (u *AuthUseCase) CreateUser(ctx context.Context, email string, password string) (*entities.User, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, errors.New("gagal hash password")
+	}
+
+	user := &entities.User{
+		ID:       uuid.New(),
+		Email:    email,
+		Password: string(hashed),
+	}
+	if err := u.UserRepo.Create(ctx, user); err != nil {
+		return nil, errors.New("gagal membuat user")
+	}
+	return user, nil
+}
+
+func (u *AuthUseCase) CheckRoleUser(ctx context.Context, claims *entities.AccessTokenClaims, requiredRoles []string) (bool, error) {
+	if claims.RoleID == nil {
+		return false, errors.New("user tidak memiliki role")
+	}
+	role, err := u.RoleRepo.GetByID(ctx, *claims.RoleID)
+	if err != nil {
+		return false, errors.New("role tidak ditemukan")
+	}
+
+	if !slices.Contains(requiredRoles, role.Name) {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func hashToken(token string) string {
